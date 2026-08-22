@@ -1,0 +1,35 @@
+{
+  "name": "anand-palace",
+  "version": "1.0.0",
+  "description": "Anand Palace - QR table ordering system with live manager dashboard",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "verify:visual": "node scripts/visual-verify.js",
+    "photos": "node scripts/fetch-menu-photos.js",
+    "photos:sync": "node scripts/sync-menu-photos.js",
+    "menu:tidy": "node scripts/tidy-menu.js"
+  },
+  "keywords": [
+    "restaurant",
+    "qr-ordering",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cookie": "^0.6.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.3.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.1.0"
+  }
+}

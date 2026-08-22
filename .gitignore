@@ -1,0 +1,12 @@
+node_modules/
+
+# Live data — deliberately NOT committed.
+# db.json holds real orders and, more importantly,every table's QR TOKEN, which is what
+# authorises a guest to open that table. Publishing it would let anyone seat themselves.
+# The app seeds a fresh Anand Palace (full menu, new tables, new tokens) on first boot.
+data/db.json
+# JWT + cookie signing secrets, generated per install.
+data/secrets.json
+
+*.log
+.env

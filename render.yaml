@@ -1,0 +1,32 @@
+# Render blueprint for Anand Palace.
+# Render builds from a CONNECTED GIT REPO (GitHub/GitLab/Bitbucket) or a registry image —
+# it cannot deploy a local folder — so this file only takes effect once the repo is linked.
+services:
+  - type: web
+    name: anand-palace
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Sessions and guest cookies are signed with these. Left unset they are randomised at
+      # boot, so every restart logs out every manager and invalidates every guest's order
+      # cookie. Generate once, then keep them fixed.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: MANAGER_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # MUST be set to the service's own https URL, e.g. https://anand-palace.onrender.com
+      # Table QR codes encode this; if it is wrong the printed QRs point at the wrong host.
+      - key: PUBLIC_URL
+        sync: false
+      # Required for data to survive a restart — see the warning in DEPLOY.md before setting.
+      - key: MONGODB_URI
+        sync: false

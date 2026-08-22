@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <title>Anand Palace · Order</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Playfair Display + Inter: the pairing used across premium hospitality and business
+       identities — an editorial serif for names, a neutral grotesque for everything read fast. -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    /* set the colour mode BEFORE first paint so there is no white flash on a dark table */
+    (function () {
+      try {
+        var saved = localStorage.getItem('ap-theme');
+        var mode = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', mode);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+    })();
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-container">
+      <div class="brand-title serif" id="brand-name">Anand Palace</div>
+      <div class="brand-subtitle" id="brand-tag">Fine Indian Dining</div>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch between dark and light menu">
+        <i class="fa-solid fa-moon" aria-hidden="true"></i>
+      </button>
+      <div class="table-badge">
+        <i class="fa-solid fa-gem"></i>
+        <span id="table-display">Loading…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Category Tabs -->
+  <div class="tabs-wrapper">
+    <nav class="category-scroll" id="category-tabs"></nav>
+  </div>
+
+  <!-- Menu Grid -->
+  <main class="menu-container" id="menu-container">
+    <div class="loading-state" id="loading-state">
+      <i class="fa-solid fa-utensils fa-beat"></i>
+      <p>Setting your table…</p>
+    </div>
+  </main>
+
+  <!-- Floating Cart / Status Bar -->
+  <div class="cart-bar" id="cart-bar">
+    <div class="cart-left">
+      <div class="cart-icon-wrapper">
+        <i class="fa-solid fa-bell-concierge" id="cart-icon"></i>
+        <div class="cart-badge-count" id="cart-count">0</div>
+      </div>
+      <div class="cart-total-text" id="cart-total">₹0</div>
+    </div>
+    <div class="cart-right">
+      <span id="cart-cta">Review</span> <i class="fa-solid fa-chevron-right"></i>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet (cart / tracker / payment / receipt) -->
+  <div class="modal-overlay" id="sheet">
+    <div class="modal-content" id="sheet-content"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/customer.js"></script>
+</body>
+</html>
