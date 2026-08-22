@@ -13,24 +13,21 @@ Consequences on a restart:
 | `data/db.json` | tables + their QR tokens regenerate → **every printed QR code stops working** |
 | `data/secrets.json` | managers logged out, guests' order cookies invalidated |
 
-**Setting `MONGODB_URI` does NOT currently fix this — it makes it worse.** `lib/mongo.js` is a
-one-way mirror: it has `connect`/`sync`/`close` but **no restore path**. At boot the server calls
-`mongo.sync(store.getDb())` with whatever the local store holds, and `runSync()` ends with
+**Set `MONGODB_URI` and the data survives.** MongoDB is now the source of truth: at boot the
+server reads Mongo first, and if it holds data the local file is rebuilt from it. Only an empty
+Mongo gets seeded from the local store, and the sync hook is attached only after that decision,
+so a restore can never echo back up. The HTTP server does not accept traffic until this settles.
 
-```js
-await database.collection("restaurants").deleteMany({ slug: { $nin: slugs } });
-await database.collection("orders").deleteMany({ id: { $nin: ids } });
-```
+This was verified by reproducing the failure and then re-running it:
 
-So on a fresh container the local store is empty, and that first sync **deletes every restaurant
-and every order from MongoDB** — destroying the backup rather than restoring from it.
+| | restaurants | orders | table QR tokens |
+| --- | --- | --- | --- |
+| before, after one simulated restart | 2 -> **1** | 18 -> **0** | regenerated (printed QRs dead) |
+| after the fix | 2 -> **2** | 18 -> **18** | **all 12 identical** |
 
-Before running on an ephemeral host, do one of:
-
-1. **Add a restore path** — on boot, if the local store is empty and Mongo has data, load from
-   Mongo instead of syncing over it. (Not yet implemented.)
-2. **Attach a persistent disk** mounted at `data/` (Render paid tier), or
-3. Accept that it is a **demo only** and that orders/QRs reset on each restart.
+Without `MONGODB_URI` the app still runs perfectly well on the JSON store — but on a host with
+an ephemeral disk every restart resets it to a freshly seeded Anand Palace, which means new
+tables, new QR tokens, and no order history. Fine for a demo, not for a live restaurant.
 
 ## Required environment variables
 

@@ -27,6 +27,8 @@ services:
       # Table QR codes encode this; if it is wrong the printed QRs point at the wrong host.
       - key: PUBLIC_URL
         sync: false
-      # Required for data to survive a restart — see the warning in DEPLOY.md before setting.
+      # STRONGLY RECOMMENDED. Renders disk is ephemeral, so without this every restart resets
+      # the app to a freshly seeded restaurant: new tables, new QR tokens, no order history.
+      # With it, Mongo is the source of truth and the data (and printed QR codes) survive.
       - key: MONGODB_URI
         sync: false

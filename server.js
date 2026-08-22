@@ -59,13 +59,34 @@ store.load();
 // Mirror the JSON store into MongoDB ("anand-palace" DB) for browsing/reporting.
 // Non-fatal: if Mongo is unavailable the app still runs on the JSON store.
 // (Logged from the callback so the status is accurate once the async connect settles.)
-mongo.connect()
-  .then((info) => {
-    mongo.sync(store.getDb());                  // initial full sync
-    store.onPersist((snap) => mongo.sync(snap)); // keep in sync on every change
-    console.log(`  MongoDB       : synced -> ${info.db} (${info.uri})`);
-  })
-  .catch((e) => { console.warn(`  MongoDB       : unavailable (${e.message}) — running on JSON store only`); });
+/* MONGO IS THE SOURCE OF TRUTH whenever it holds data.
+   This used to sync unconditionally the other way, which is fine on a machine that keeps its
+   disk and destructive on one that does not: Render wipes data/db.json on every restart, the
+   store boots as a fresh SEED, and that seed was pushed up -- runSync() deletes anything not
+   in the snapshot, so the real restaurants and orders were deleted FROM MONGO. Reproduced
+   before fixing: 2 restaurants + 18 orders became 1 + 0 after one simulated restart.
+   So read Mongo FIRST. If it holds data it wins and the local file is rebuilt from it; only an
+   empty Mongo gets seeded from local. The persist hook is attached after that decision so a
+   restore can never echo back up, and the HTTP server waits for this (see server.listen) --
+   a guest served seed data in the gap could otherwise write it over the real thing. */
+async function initPersistence() {
+  try {
+    const info = await mongo.connect();
+    const restored = await mongo.loadAll();
+    if (restored) {
+      store.replaceDb(restored);
+      const n = Object.keys(restored.restaurants || {}).length;
+      const o = Object.keys(restored.orders || {}).length;
+      console.log("  MongoDB       : restored " + n + " restaurant(s), " + o + " order(s) <- " + info.db);
+    } else {
+      mongo.sync(store.getDb());
+      console.log("  MongoDB       : empty, seeded from local store -> " + info.db);
+    }
+    store.onPersist((snap) => mongo.sync(snap));
+  } catch (e) {
+    console.warn("  MongoDB       : unavailable (" + e.message + ") - running on JSON store only");
+  }
+}
 
 const app = express();
 // Behind a hosting proxy (Render/Koyeb/Fly terminate TLS for us) req.protocol reports "http"
@@ -775,6 +796,10 @@ function lanAddresses() {
   return out;
 }
 
+// Settle persistence BEFORE accepting traffic: if Mongo holds the real data we must restore it
+// first, or a guest served the seed in that window could persist it straight over the top.
+// initPersistence() never rejects (it logs and continues), so the server always comes up.
+initPersistence().then(() => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log("\n  🏰  Anand Palace platform is live\n");
   console.log(`  Super-admin   : http://localhost:${PORT}/admin   (password: ${ADMIN_PASSWORD})`);
@@ -787,3 +812,5 @@ server.listen(PORT, "0.0.0.0", () => {
   }
   console.log("");
 });
+});
+
