@@ -265,6 +265,7 @@
           <span class="oc-time">${timeAgo(o.placedAt || o.createdAt)}</span>
         </div>
         <span class="badge b-${o.status}">${o.status}</span>
+        ${custLine(o)}
         <div class="oc-items">${items}</div>
         <div class="oc-total"><span>Total (${o.itemCount} items)</span><span>${rupees(o.total)}</span></div>
         ${bill}${feedback}${actions}
@@ -287,6 +288,19 @@
   }
 
   // ---- KOT (Kitchen Order Ticket) ----
+  /* Who the order belongs to. tel: makes it one tap to ring the table from a phone, which is
+     the whole point of collecting it -- staff use this when an order is wrong or a table walks.
+     Orders placed before this feature existed have no customer, so say so plainly rather than
+     rendering an empty row. */
+  function custLine(o) {
+    const c = o.customer;
+    if (!c || !c.name) return '<div class="oc-cust"><span class="cu-missing">No contact captured</span></div>';
+    const tel = String(c.phone || "").replace(/\D/g, "");
+    return '<div class="oc-cust"><span class="cu-name">' + esc(c.name) + '</span>' +
+      (tel ? '<a class="cu-phone" href="tel:+91' + esc(tel) + '">&#128222; ' + esc(tel) + '</a>' : '') +
+      '</div>';
+  }
+
   function printKOT(o) {
     const when = new Date(o.placedAt || o.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" });
     printArea.innerHTML = `
@@ -295,6 +309,7 @@
         <div class="kot-rest">${esc(state.restaurant ? state.restaurant.name : "")}</div>
         <div class="kot-meta"><span>${esc(o.tableName)}</span><span>#${esc(o.guest)}</span></div>
         <div class="kot-meta"><span>${when}</span><span>KOT-${esc(o.id.slice(0, 6).toUpperCase())}</span></div>
+        ${o.customer && o.customer.name ? `<div class="kot-meta"><span>${esc(o.customer.name)}</span><span>${esc(String(o.customer.phone || ""))}</span></div>` : ""}
         <div class="kot-line"></div>
         ${o.items.map((i) => `<div class="kot-item"><span class="kq">${i.qty}×</span><span class="kn">${esc(i.name)}</span></div>`).join("")}
         <div class="kot-line"></div>

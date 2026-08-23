@@ -55,6 +55,15 @@
     return data;
   }
 
+  /* Mirrors of the server's cleanName/cleanPhone. The server is the real gate -- these exist
+     so a guest gets told what is wrong BEFORE the round trip, and so the button can stay
+     disabled until the fields are usable. Kept deliberately identical, marks included:
+     "\p{M}" is why Devanagari names like "राहुल" pass. */
+  const NAME_RE = /^\p{L}[\p{L}\p{M}\s.'-]{1,39}$/u;
+  const okName = (v) => NAME_RE.test(String(v || "").trim().replace(/\s+/g, " "));
+  const digits10 = (v) => String(v || "").replace(/\D/g, "").replace(/^(?:0|91)(?=\d{10}$)/, "");
+  const okPhone = (v) => /^[6-9]\d{9}$/.test(digits10(v));
+
   let toastTimer;
   function toast(msg, isError = false) {
     toastEl.textContent = msg;
@@ -352,6 +361,7 @@
         <div class="empty-sheet"><i class="fa-solid fa-utensils"></i><h3>Your plate is empty</h3>
           <p>Add a few dishes to begin your feast.</p></div>`;
     }
+    const cust = (state.order && state.order.customer) || {};
     return `
       <div class="sheet-grip"></div>
       <div class="modal-header">
@@ -380,6 +390,21 @@
       <div class="bill-box">
         <div class="bill-line"><span>Item total</span><b>${rupees(state.order.total)}</b></div>
         <div class="bill-line"><span>GST (5%)</span><span>calculated at payment</span></div>
+      </div>
+      <div class="guest-id">
+        <div class="gi-title">Who's ordering?</div>
+        <label class="gi-field">
+          <span>Your name</span>
+          <input id="gi-name" type="text" autocomplete="name" maxlength="40"
+                 placeholder="e.g. Ravi Kumar" value="${esc(cust.name || "")}">
+        </label>
+        <label class="gi-field">
+          <span>Mobile number</span>
+          <input id="gi-phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="15"
+                 placeholder="10-digit mobile" value="${esc(cust.phone || "")}">
+        </label>
+        <div class="gi-err" id="gi-err"></div>
+        <div class="gi-note">So the kitchen knows whose order this is, and we can reach you if there's a question.</div>
       </div>
       <div class="modal-footer">
         <button class="btn-checkout spread" data-place><span>Place Order</span><span>${rupees(state.order.total)}</span></button>
@@ -661,8 +686,22 @@
   }
 
   async function placeOrder() {
+    const nameEl = $("gi-name"), phoneEl = $("gi-phone"), errEl = $("gi-err");
+    const name = nameEl ? nameEl.value : "";
+    const phone = phoneEl ? phoneEl.value : "";
+    const showErr = (msg, el) => {
+      if (errEl) errEl.textContent = msg;
+      if (el) { el.classList.add("bad"); el.focus(); }
+      // no toast: the inline message sits right under the field, and a toast on top of it
+      // literally covered the text it was repeating
+    };
+    if (nameEl) nameEl.classList.remove("bad");
+    if (phoneEl) phoneEl.classList.remove("bad");
+    if (!okName(name)) return showErr("Please enter your name.", nameEl);
+    if (!okPhone(phone)) return showErr("Enter a valid 10-digit mobile number.", phoneEl);
+    if (errEl) errEl.textContent = "";
     try {
-      const { order } = await api("/api/order/place", { method: "POST" });
+      const { order } = await api("/api/order/place", { method: "POST", body: { name, phone } });
       state.order = order;
       state.lastStatus = order.status;
       toast("🛎️ Order sent to the kitchen!");

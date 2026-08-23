@@ -174,6 +174,23 @@ function settleBill(r, order, method) {
   return order.bill;
 }
 
+/* GUEST IDENTITY. The kitchen calls a name out, and staff need a number to ring when a table
+   walks out or an order goes wrong -- so both are required before an order can be placed.
+   Validated HERE and not only in the browser: the form is a convenience, this is the gate,
+   because anyone can POST to the API directly. */
+const GUEST_NAME_RE = /^\p{L}[\p{L}\p{M}\s.'-]{1,39}$/u;      // letters + combining MARKS: Devanagari vowel signs are marks, so a
+                                                          // "letters only" rule rejected "राहुल" outright
+function cleanName(v) {
+  const t = String(v == null ? "" : v).trim().replace(/\s+/g, " ");
+  return GUEST_NAME_RE.test(t) ? t : null;
+}
+/* Indian mobile: 10 digits starting 6-9. Accepts the shapes people actually type --
+   "+91 98765 43210", "098765-43210", "9876543210" -- and stores the bare 10 digits. */
+function cleanPhone(v) {
+  const d = String(v == null ? "" : v).replace(/\D/g, "").replace(/^(?:0|91)(?=\d{10}$)/, "");
+  return /^[6-9]\d{9}$/.test(d) ? d : null;
+}
+
 function customerView(r, order) {
   if (!order) return null;
   const t = tableById(r, order.tableId);
@@ -183,7 +200,8 @@ function customerView(r, order) {
     guest: order.sid.slice(0, 6).toUpperCase(),
     items: order.items, status: order.status, total: orderTotal(order),
     placedAt: order.placedAt, paidAt: order.paidAt || null,
-    bill: order.bill || null, feedback: order.feedback || null, updatedAt: order.updatedAt
+    bill: order.bill || null, feedback: order.feedback || null, updatedAt: order.updatedAt,
+    customer: order.customer || null   // so the guest form can prefill after a refresh
   };
 }
 
@@ -200,7 +218,8 @@ function managerView(order) {
     paidAt: order.paidAt || null, bill: order.bill || null,
     feedback: order.feedback || null, updatedAt: order.updatedAt,
     edited: !!order.edited, editedAt: order.editedAt || null,
-    cleared: !!order.cleared, clearedAt: order.clearedAt || null
+    cleared: !!order.cleared, clearedAt: order.clearedAt || null,
+    customer: order.customer || null   // shown on the order card so staff can call the table
   };
 }
 
@@ -423,6 +442,14 @@ app.post("/api/order/item", requireCustomer, (req, res) => {
 app.post("/api/order/place", requireCustomer, (req, res) => {
   const order = currentOrder(req.slug, req.tableId, req.sid);
   if (!order || order.items.length === 0) return res.status(400).json({ error: "Add at least one dish before placing your order." });
+  // Captured at PLACE rather than at seating: demanding a phone number before someone may even
+  // read the menu costs orders, and this is the first moment the restaurant actually needs it.
+  // Re-validated on every call, so an order edited later still carries a usable contact.
+  const name = cleanName(req.body && req.body.name);
+  const phone = cleanPhone(req.body && req.body.phone);
+  if (!name) return res.status(400).json({ error: "Please enter your name.", field: "name" });
+  if (!phone) return res.status(400).json({ error: "Enter a valid 10-digit mobile number.", field: "phone" });
+  order.customer = { name, phone };
   if (order.status === "cart") { order.status = "placed"; order.placedAt = Date.now(); }
   order.updatedAt = Date.now();
   store.save();

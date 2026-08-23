@@ -277,3 +277,13 @@ button { font-family: inherit; cursor: pointer; }
   /* the order toolbar and menu-editor rows are desk-width flex rows */
   .orders-toolbar, .menu-editor-bar, .menu-editor-bar .me-actions { flex-wrap: wrap; }
 }
+
+/* === guest contact on the order card === */
+.oc-cust { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 2px 0 10px; font-size: 13px; }
+.oc-cust .cu-name { font-weight: 700; color: var(--ink); }
+.oc-cust .cu-phone { color: var(--maroon); text-decoration: none; font-weight: 600;
+  background: #fff5e9; border: 1px solid #f0dcc0; border-radius: 999px;
+  padding: 5px 11px; min-height: 32px; display: inline-flex; align-items: center; gap: 5px; }
+.oc-cust .cu-phone:hover { background: #ffe9cf; }
+.oc-cust .cu-missing { color: var(--muted); font-style: italic; }

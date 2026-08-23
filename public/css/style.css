@@ -561,3 +561,20 @@ header {
 :root[data-theme="light"] .dish-img-wrapper::after { background: linear-gradient(to bottom, rgba(0,0,0,.30), transparent); }
 :root[data-theme="light"] body::after { opacity: var(--grain-opacity); }
 :root[data-theme="light"] .theme-toggle { background: #fff; }
+
+/* === WHO'S ORDERING — name + phone captured in the cart, before placing === */
+.guest-id { background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 16px;
+  padding: 16px 18px; margin-bottom: 18px; flex-shrink: 0; }
+.gi-title { font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--text-primary); }
+.gi-field { display: block; margin-bottom: 12px; }
+.gi-field span { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 600; }
+.gi-field input {
+  width: 100%; box-sizing: border-box; padding: 13px 14px; border-radius: 12px;
+  border: 1px solid var(--border-light); background: var(--bg-base); color: var(--text-primary);
+  /* 16px is not a style choice: iOS zooms the whole page in on focus below it */
+  font-size: 16px; font-family: inherit; outline: none; transition: border-color .2s;
+}
+.gi-field input:focus { border-color: var(--gold-primary); }
+.gi-field input.bad { border-color: #e5484d; background: rgba(229, 72, 77, .06); }
+.gi-err { color: #e5484d; font-size: 13px; font-weight: 600; min-height: 18px; }
+.gi-note { font-size: 12px; color: var(--text-muted); line-height: 1.45; }
