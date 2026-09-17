@@ -1,0 +1,41 @@
+# PREVIEW ONLY - static deploy of public/ so the UI can be shown to people.
+# Netlify, like Vercel, cannot run server.js: no socket.io connection, no disk
+# writes for lib/store.js, and every /api/* call 404s. Ordering, login and the
+# live dashboard do not work here.
+# Working deployments: deploy/ (Oracle VM) or render.yaml (Render).
+
+[build]
+  publish = "public"
+  command = ""
+
+# Without server.js nothing sendFile()s these, so map the pretty routes by hand.
+[[redirects]]
+  from = "/manager"
+  to = "/manager.html"
+  status = 200
+
+[[redirects]]
+  from = "/r/:slug/manager"
+  to = "/manager.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/t/:token"
+  to = "/table.html"
+  status = 200
+
+[[redirects]]
+  from = "/photo-credits"
+  to = "/photo-credits.html"
+  status = 200
+
+# A non-working copy of a real restaurant's ordering system should not be indexed.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
