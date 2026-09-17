@@ -1,0 +1,40 @@
+# systemd unit for Anand Palace.
+# Install to /etc/systemd/system/anand-palace.service
+[Unit]
+Description=Anand Palace - QR table ordering
+Documentation=https://github.com/Parth-Kale-2008/anand-palace
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/anand-palace
+
+# Secrets and config live here, root-owned, mode 0640. Never commit this file.
+EnvironmentFile=/etc/anand-palace.env
+
+ExecStart=/usr/bin/node server.js
+
+# The app is the restaurant's till. Always bring it back.
+Restart=always
+RestartSec=5
+
+# Give a crash loop room to breathe rather than hammering the box.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=anand-palace
+
+# Hardening. data/ must stay writable - that is the datastore.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/opt/anand-palace/data
+
+[Install]
+WantedBy=multi-user.target
