@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
-# Pull the latest code and restart. Run on the VM after pushing to GitHub.
-#   ~/update.sh   (or  /opt/anand-palace/deploy/update.sh)
+# Pull the latest code and restart. Run on the VM after pushing to GitHub:
+#   /opt/anand-palace/deploy/update.sh
 set -euo pipefail
 APP_DIR="/opt/anand-palace"
 
+# Git must run as `ubuntu`, NOT via sudo: the read-only deploy key that grants
+# access to the private repo lives in ~ubuntu/.ssh. Under root the fetch fails
+# with "Permission denied (publickey)".
+if [ "$(id -un)" != "ubuntu" ]; then
+  echo "Run this as the ubuntu user (the deploy key is ubuntu's), not with sudo." >&2
+  exit 1
+fi
+
 echo "==> Pulling latest"
-sudo git -C "$APP_DIR" fetch --all --prune
-sudo git -C "$APP_DIR" reset --hard origin/master
-sudo chown -R ubuntu:ubuntu "$APP_DIR"
+git -C "$APP_DIR" fetch --all --prune
+git -C "$APP_DIR" reset --hard origin/master
 
 echo "==> Installing dependencies"
 cd "$APP_DIR" && npm ci --omit=dev

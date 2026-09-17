@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # Provision Anand Palace on a fresh Oracle Cloud "Always Free" Ubuntu VM.
 #
-# Run ON THE VM as the default `ubuntu` user:
-#   curl -fsSL https://raw.githubusercontent.com/Parth-Kale-2008/anand-palace/master/deploy/setup-oracle.sh -o setup.sh
-#   chmod +x setup.sh
-#   ./setup.sh yourdomain.com          # with a domain -> gets free HTTPS
-#   ./setup.sh                         # no domain    -> plain http on the public IP
+# The GitHub repo is PRIVATE, so the VM needs read access. This script uses a
+# read-only DEPLOY KEY: on first run it generates an SSH key, prints the public
+# half and stops. You paste that into GitHub, run it again, and it completes.
+# Nothing about the repo becomes public and no password is stored on the box.
 #
-# Idempotent: safe to re-run.
+# Run ON THE VM as the default `ubuntu` user:
+#   ./setup-oracle.sh yourdomain.com     # with a domain -> gets free HTTPS
+#   ./setup-oracle.sh                    # no domain    -> plain http on the IP
+#
+# Idempotent: safe to re-run, and re-running is part of the flow.
 
 set -euo pipefail
 
 DOMAIN="${1:-}"
-REPO="https://github.com/Parth-Kale-2008/anand-palace.git"
+REPO="git@github.com:Parth-Kale-2008/anand-palace.git"
+KEY="$HOME/.ssh/anand_deploy"
 APP_DIR="/opt/anand-palace"
 ENV_FILE="/etc/anand-palace.env"
 NODE_MAJOR=22
@@ -46,13 +50,58 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent netfi
 sudo netfilter-persistent save
 
 # ---------------------------------------------------------------------------
+log "Checking GitHub access (private repo -> deploy key)"
+
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+if [ ! -f "$KEY" ]; then
+  ssh-keygen -t ed25519 -f "$KEY" -N "" -C "anand-palace-oracle-vm" >/dev/null
+fi
+
+# Always use this key for github.com, and trust the host so the clone is not
+# blocked on an interactive fingerprint prompt.
+if ! grep -q "Host github.com" "$HOME/.ssh/config" 2>/dev/null; then
+  cat >> "$HOME/.ssh/config" <<SSHEOF
+Host github.com
+  IdentityFile ${KEY}
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new
+SSHEOF
+  chmod 600 "$HOME/.ssh/config"
+fi
+ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
+sort -u -o "$HOME/.ssh/known_hosts" "$HOME/.ssh/known_hosts"
+
+# `ssh -T git@github.com` exits 1 even on success, so match the greeting instead.
+if ! ssh -T -o BatchMode=yes git@github.com 2>&1 | grep -qi "successfully authenticated\|You've successfully"; then
+  echo
+  echo "  ┌──────────────────────────────────────────────────────────────────┐"
+  echo "  │  ACTION NEEDED - add this VM as a read-only deploy key           │"
+  echo "  └──────────────────────────────────────────────────────────────────┘"
+  echo
+  echo "  1. Copy the whole line below:"
+  echo
+  cat "${KEY}.pub"
+  echo
+  echo "  2. Open:"
+  echo "     https://github.com/Parth-Kale-2008/anand-palace/settings/keys/new"
+  echo "  3. Title: oracle-vm    Key: paste the line."
+  echo "     LEAVE 'Allow write access' UNCHECKED - the server only ever reads."
+  echo "  4. Click 'Add key', then run this script again:"
+  echo "        ./setup-oracle.sh ${DOMAIN:-}"
+  echo
+  exit 1
+fi
+echo "    GitHub access confirmed."
+
 log "Fetching application into ${APP_DIR}"
 if [ -d "${APP_DIR}/.git" ]; then
-  sudo git -C "$APP_DIR" fetch --all --prune
-  sudo git -C "$APP_DIR" reset --hard origin/master
+  sudo -u ubuntu git -C "$APP_DIR" fetch --all --prune
+  sudo -u ubuntu git -C "$APP_DIR" reset --hard origin/master
 else
   sudo rm -rf "$APP_DIR"
-  sudo git clone "$REPO" "$APP_DIR"
+  sudo mkdir -p "$APP_DIR" && sudo chown ubuntu:ubuntu "$APP_DIR"
+  # Clone as ubuntu so the deploy key in ~ubuntu/.ssh is the one used.
+  git clone "$REPO" "$APP_DIR"
 fi
 sudo chown -R ubuntu:ubuntu "$APP_DIR"
 
