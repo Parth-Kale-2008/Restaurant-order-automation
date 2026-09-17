@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "//": [
+    "PREVIEW ONLY - this is a static deploy of public/ so the UI can be shown to people.",
+    "It is NOT a working deployment. Vercel is serverless, so server.js never runs:",
+    "socket.io cannot hold a connection, lib/store.js cannot write db.json, and every",
+    "/api/* call 404s. Ordering, login and the live dashboard do not function here.",
+    "The real deployment lives in deploy/ (Oracle VM) or render.yaml (Render)."
+  ],
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/manager", "destination": "/manager.html" },
+    { "source": "/r/:slug/manager", "destination": "/manager.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/t/:token", "destination": "/table.html" },
+    { "source": "/photo-credits", "destination": "/photo-credits.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ]
+}
