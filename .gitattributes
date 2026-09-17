@@ -1,0 +1,17 @@
+# Default: let git normalise text line endings in the repository.
+* text=auto
+
+# These are consumed by Linux on the server, not by Windows. They MUST keep LF
+# endings in the working tree as well as in the repo: a CRLF shebang makes the
+# kernel look for an interpreter literally named "bash\r", and systemd will not
+# parse a unit file with trailing CRs.
+*.sh              text eol=lf
+*.service         text eol=lf
+deploy/*.conf     text eol=lf
+
+# Binary assets - never touch these.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.ico   binary
